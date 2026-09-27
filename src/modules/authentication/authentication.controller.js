@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { login ,signup } from "./authentication.service.js";
+import { login ,signup, signupWithGmail } from "./authentication.service.js";
 import {successResponse} from "../../common/utils/index.js";
  const router = Router();
 
@@ -9,9 +9,15 @@ router.post("/signup" , async(req,res,next)=>{
     return successResponse({res , status:201 , data})
 })
 
+router.post("/signup-with-gmail" , async(req,res,next)=>{
+    const {status , data} =await signupWithGmail(req.body , `${req.protocol}://${req.host}`)
+    return successResponse({res , status , data})
+})
+
 
 router.post("/login" , async(req,res,next)=>{
-    const data = await login(req.body)
+    const issuer = req.headers.host
+    const data = await login(req.body, `${req.protocol}://${req.host}`)
     return successResponse({res , data})
 })
 

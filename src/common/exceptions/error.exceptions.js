@@ -25,6 +25,15 @@ export const NotfoundExceptions = (message = "Notfound" , issues ={} ) =>{
     })
 }
 
+export const BadExceptions = (message = "Bad Request Excaption" , issues ={} ) =>{
+    return ApplicationExceptions({
+        message ,
+        options:{
+            cause:{status:400, ...issues}
+        }
+    })
+}
+
 export const UnauthorizedExceptions = (message = "Unauthorized" , issues ={} ) =>{
     return ApplicationExceptions({
         message ,

@@ -7,7 +7,11 @@ import {
 import { globalErrorHandling } from "./middleware/error.middleware.js";
 import { bootstrapDB } from "./DB/connection.db.js";
 import { PORT } from "./config.js";
+import cors from 'cors';
 const app = express();
+app.use(cors());
+
+
 bootstrapDB (app , PORT)
 const port = 3000;
 app.use(express.json());
