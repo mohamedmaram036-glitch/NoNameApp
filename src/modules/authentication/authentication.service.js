@@ -107,7 +107,7 @@ export const signup = async({email ,password , username , phone}) =>{
 }
 
 
-export const login = async({email , password ,issuer}) =>{
+export const login = async({email , password },issuer) =>{
      const account = await findOne({
         model:UserModel,
         filter:{email , Provider:ProviderEnum.SYSTEM},

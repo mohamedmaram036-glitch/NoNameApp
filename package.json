@@ -20,6 +20,8 @@
     "google-auth-library": "^11.1.0",
     "jsonwebtoken": "^9.0.3",
     "mongodb": "^7.6.0",
-    "mongoose": "^9.9.5"
+    "mongoose": "^9.9.5",
+    "redis": "^6.3.0",
+    "zod": "^4.6.5"
   }
 }

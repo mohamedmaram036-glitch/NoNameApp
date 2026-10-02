@@ -10,12 +10,29 @@ import {
 import {
   BadExceptions,
   NotfoundExceptions,
+  UnauthorizedExceptions,
 } from "../exceptions/error.exceptions.js";
 import { findById, findOne } from "../repository/base.repository.js";
 import { UserModel } from "./../../DB/model/user.model.js";
 import { TokenTypeEnum } from "../enum/security.enum.js";
 import { RoleEnum } from "../enum/user.gender.js";
 import { compare } from "./hash.security.js";
+import {randomUUID} from 'node:crypto'
+import { exist, set } from "../services/index.js";
+
+export const userBaseKey = ({ userId }) => {
+  return `User::${userId.toString()}`;
+};
+
+
+export const userBaseRevokeTokenKey = ({ userId }) => {
+  return `User::${userBaseKey({ userId })}::RevokeToken`;
+};
+
+
+export const userRevokeTokenKey = ({ userId, jti }) => {
+  return `${ userBaseRevokeTokenKey({ userId })}::${jti}`;
+};
 
 export const createToken = async ({
   payload = {},
@@ -80,6 +97,14 @@ export const decodeToken = async ({
   if (!payload?.sub) {
     throw BadExceptions("missing token payload");
   }
+
+if(await exist({key: userRevokeTokenKey({userId:payload.sub , jti:payload.jti})})){
+    throw UnauthorizedExceptions("Expired login credentials");
+}
+
+
+
+
   const user = await findById({
     model: UserModel,
     id: payload.sub,
@@ -87,6 +112,15 @@ export const decodeToken = async ({
   if (!user) {
     throw NotfoundExceptions("invalid user");
   }
+
+  
+  console.log({ change :user.changeCredentialsTime?.getTime(), iat:payload.iat*1000});
+
+  if((user.changeCredentialsTime?.getTime() ?? 0) > payload.iat*1000){
+    throw UnauthorizedExceptions("Expired login credentials");
+}
+  
+
   return { user, payload };
 };
 
@@ -98,6 +132,9 @@ export const createLoginCredentials = async ({
   const { accessSignature, refrehSignature } = await getTokenSignatures({
     role: user.role,
   });
+
+const jwtid = randomUUID();
+
   const access_token = await createToken({
     payload: { sub: user._id },
     secret: accessSignature,
@@ -106,6 +143,7 @@ export const createLoginCredentials = async ({
       issuer,
       audience: [user.role],
       expiresIn: ACCESS_TOKEN_EXPIRES_IN,
+      jwtid
     },
   });
 
@@ -117,6 +155,7 @@ export const createLoginCredentials = async ({
       issuer,
       audience: [user.role],
       expiresIn: REFREH_TOKEN_EXPIRES_IN,
+      jwtid
     },
     secret: refrehSignature,
   });
@@ -125,6 +164,18 @@ export const createLoginCredentials = async ({
 
   return { access_token, refreh_token };
 };
+
+
+export const createRevokeToken = async({payload})=>{
+  const consumedTime = (Math.ceil(Date.now()/1000) - payload.iat);
+      const refreshExpiresIn = payload.iat + REFREH_TOKEN_EXPIRES_IN;
+      const ttl = refreshExpiresIn - consumedTime
+      console.log({payload , consumedTime , refreshExpiresIn , ttl});
+      await set({key:await userRevokeTokenKey({userId:payload.sub , jti:payload.jti}) , value:payload.jti, ttl})
+      return
+}
+
+
 
 export const basicAuth = async({email , password }) =>{
      const account = await findOne({
